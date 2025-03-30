@@ -9,3 +9,5 @@ seaborn
 shap==0.44.1
 numba
 llvmlite
+plotly
+statsmodels
