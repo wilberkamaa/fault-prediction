@@ -332,547 +332,561 @@ def main():
         
         if len(date_range) == 2:
             start_date, end_date = date_range
-            filtered_data = sample_data.loc[start_date:end_date]
+            filtered_data = sample_data.loc[start_date:end_date].copy()
         else:
-            filtered_data = sample_data
+            filtered_data = sample_data.copy()
     else:
         filtered_data = None
     
     # Main content
-    if filtered_data is not None:
-        # Make predictions on the filtered data
-        predictions, probabilities = predict_fault(
-            filtered_data,
-            models_dict[model_key],
-            models_dict["scaler"],
-            models_dict["feature_list"],
-            threshold
-        )
-        
-        # Add predictions to the dataframe
-        filtered_data['predicted_fault'] = predictions
-        filtered_data['fault_probability'] = probabilities
-        
-        # Dashboard layout with tabs
-        tab1, tab2, tab3, tab4 = st.tabs(["System Overview", "Fault Analysis", "Feature Importance", "Performance Metrics"])
-        
-        # Tab 1: System Overview
-        with tab1:
-            # Power distribution
-            st.markdown('<h2 class="sub-header">Power Distribution</h2>', unsafe_allow_html=True)
-            
-            power_cols = ['solar_power', 'battery_power', 'grid_power', 'generator_power', 'load_demand']
-            power_fig = create_time_series_plot(
+    if filtered_data is not None and not filtered_data.empty:
+        try:
+            # Make predictions on the filtered data
+            predictions, probabilities = predict_fault(
                 filtered_data,
-                power_cols,
-                "Power Distribution Over Time",
-                "Power (kW)"
-            )
-            st.plotly_chart(power_fig, use_container_width=True)
-            
-            # Weather conditions
-            st.markdown('<h2 class="sub-header">Weather Conditions</h2>', unsafe_allow_html=True)
-            
-            weather_cols = ['weather_temperature', 'weather_humidity', 'weather_wind_speed', 'solar_irradiance']
-            weather_fig = create_time_series_plot(
-                filtered_data,
-                weather_cols,
-                "Weather Conditions Over Time",
-                "Value"
-            )
-            st.plotly_chart(weather_fig, use_container_width=True)
-        
-        # Tab 2: Fault Analysis
-        with tab2:
-            st.markdown('<h2 class="sub-header">Fault Prediction Analysis</h2>', unsafe_allow_html=True)
-            
-            # Current fault status
-            latest_prediction = predictions[-1]
-            latest_probability = probabilities[-1]
-            
-            if latest_prediction == 1:
-                st.markdown(
-                    f'<div class="fault-alert"><h3>⚠️ Fault Detected!</h3>'
-                    f'<p>Fault probability: {latest_probability:.2%}</p></div>',
-                    unsafe_allow_html=True
-                )
-            else:
-                st.markdown(
-                    f'<div class="no-fault"><h3>✅ System Normal</h3>'
-                    f'<p>Fault probability: {latest_probability:.2%}</p></div>',
-                    unsafe_allow_html=True
-                )
-            
-            # Fault probability over time
-            st.subheader("Fault Probability Over Time")
-            
-            fig = px.line(
-                filtered_data,
-                x=filtered_data.index,
-                y='fault_probability',
-                title="Fault Probability Trend"
+                models_dict[model_key],
+                models_dict["scaler"],
+                models_dict["feature_list"],
+                threshold
             )
             
-            fig.add_hline(
-                y=threshold,
-                line_dash="dash",
-                line_color="red",
-                annotation_text=f"Threshold ({threshold})",
-                annotation_position="bottom right"
-            )
+            # Add predictions to the dataframe
+            filtered_data['predicted_fault'] = predictions
+            filtered_data['fault_probability'] = probabilities
             
-            fig.update_layout(
-                xaxis_title="Time",
-                yaxis_title="Fault Probability",
-                height=400
-            )
+            # Dashboard layout with tabs
+            tab1, tab2, tab3, tab4 = st.tabs(["System Overview", "Fault Analysis", "Feature Importance", "Performance Metrics"])
             
-            st.plotly_chart(fig, use_container_width=True)
-            
-            # Fault distribution
-            st.subheader("Predicted Fault Distribution")
-            
-            fault_counts = filtered_data['predicted_fault'].value_counts()
-            
-            fig = px.pie(
-                values=fault_counts.values,
-                names=["No Fault", "Fault"],
-                title="Fault Distribution",
-                color_discrete_sequence=px.colors.qualitative.Set3
-            )
-            
-            st.plotly_chart(fig, use_container_width=True)
-            
-            # High-risk periods
-            st.subheader("High-Risk Periods")
-            
-            high_risk = filtered_data[filtered_data['fault_probability'] > threshold].copy()
-            
-            if not high_risk.empty:
-                # Group consecutive high-risk periods
-                high_risk['date'] = high_risk.index.date
-                high_risk['hour'] = high_risk.index.hour
+            # Tab 1: System Overview
+            with tab1:
+                # Power distribution
+                st.markdown('<h2 class="sub-header">Power Distribution</h2>', unsafe_allow_html=True)
                 
-                # Display as a heatmap by hour and date
-                pivot = pd.pivot_table(
-                    high_risk,
-                    values='fault_probability',
-                    index='date',
-                    columns='hour',
-                    aggfunc='mean'
+                power_cols = ['solar_power', 'battery_power', 'grid_power', 'generator_power', 'load_demand']
+                power_fig = create_time_series_plot(
+                    filtered_data,
+                    power_cols,
+                    "Power Distribution Over Time",
+                    "Power (kW)"
+                )
+                st.plotly_chart(power_fig, use_container_width=True)
+                
+                # Weather conditions
+                st.markdown('<h2 class="sub-header">Weather Conditions</h2>', unsafe_allow_html=True)
+                
+                weather_cols = ['weather_temperature', 'weather_humidity', 'weather_wind_speed', 'solar_irradiance']
+                weather_fig = create_time_series_plot(
+                    filtered_data,
+                    weather_cols,
+                    "Weather Conditions Over Time",
+                    "Value"
+                )
+                st.plotly_chart(weather_fig, use_container_width=True)
+            
+            # Tab 2: Fault Analysis
+            with tab2:
+                st.markdown('<h2 class="sub-header">Fault Prediction Analysis</h2>', unsafe_allow_html=True)
+                
+                # Current fault status
+                latest_prediction = predictions[-1]
+                latest_probability = probabilities[-1]
+                
+                if latest_prediction == 1:
+                    st.markdown(
+                        f'<div class="fault-alert"><h3>⚠️ Fault Detected!</h3>'
+                        f'<p>Fault probability: {latest_probability:.2%}</p></div>',
+                        unsafe_allow_html=True
+                    )
+                else:
+                    st.markdown(
+                        f'<div class="no-fault"><h3>✅ System Normal</h3>'
+                        f'<p>Fault probability: {latest_probability:.2%}</p></div>',
+                        unsafe_allow_html=True
+                    )
+                
+                # Fault probability over time
+                st.subheader("Fault Probability Over Time")
+                
+                fig = px.line(
+                    filtered_data,
+                    x=filtered_data.index,
+                    y='fault_probability',
+                    title="Fault Probability Trend"
                 )
                 
-                fig = px.imshow(
-                    pivot,
-                    labels=dict(x="Hour of Day", y="Date", color="Fault Probability"),
-                    x=pivot.columns,
-                    y=pivot.index,
-                    color_continuous_scale="Reds",
-                    title="High-Risk Periods (Hours with Fault Probability > Threshold)"
+                fig.add_hline(
+                    y=threshold,
+                    line_dash="dash",
+                    line_color="red",
+                    annotation_text=f"Threshold ({threshold})",
+                    annotation_position="bottom right"
                 )
                 
-                fig.update_layout(height=400)
+                fig.update_layout(
+                    xaxis_title="Time",
+                    yaxis_title="Fault Probability",
+                    height=400
+                )
+                
                 st.plotly_chart(fig, use_container_width=True)
-            else:
-                st.info("No high-risk periods detected with the current threshold.")
-        
-        # Tab 3: Feature Importance
-        with tab3:
-            st.markdown('<h2 class="sub-header">Feature Importance</h2>', unsafe_allow_html=True)
-            
-            # Get feature importance based on model type
-            if selected_model == "Random Forest":
-                # Random Forest feature importance
-                if hasattr(models_dict[model_key], 'feature_importances_'):
-                    feature_importance = pd.DataFrame({
-                        'Feature': models_dict["feature_list"],
-                        'Importance': models_dict[model_key].feature_importances_
-                    }).sort_values('Importance', ascending=False)
+                
+                # Fault distribution
+                st.subheader("Predicted Fault Distribution")
+                
+                if not filtered_data.empty and 'predicted_fault' in filtered_data.columns:
+                    fault_counts = filtered_data['predicted_fault'].value_counts()
                     
-                    # Display top 15 features
+                    if not fault_counts.empty:
+                        # Create a mapping dictionary for the labels
+                        label_map = {0: "No Fault", 1: "Fault"}
+                        
+                        # Create the pie chart
+                        fig = px.pie(
+                            values=fault_counts.values,
+                            names=[label_map.get(idx, f"Unknown ({idx})") for idx in fault_counts.index],
+                            title="Fault Distribution",
+                            color_discrete_sequence=px.colors.qualitative.Set3
+                        )
+                        
+                        st.plotly_chart(fig, use_container_width=True)
+                    else:
+                        st.info("No fault data available for visualization.")
+                else:
+                    st.info("No data available for fault distribution visualization.")
+                
+                # High-risk periods
+                st.subheader("High-Risk Periods")
+                
+                if not filtered_data.empty and 'fault_probability' in filtered_data.columns:
+                    high_risk = filtered_data[filtered_data['fault_probability'] > threshold].copy()
+                    
+                    if not high_risk.empty:
+                        # Group consecutive high-risk periods
+                        high_risk['date'] = high_risk.index.date
+                        high_risk['hour'] = high_risk.index.hour
+                        
+                        # Display as a heatmap by hour and date
+                        try:
+                            pivot = pd.pivot_table(
+                                high_risk,
+                                values='fault_probability',
+                                index='date',
+                                columns='hour',
+                                aggfunc='mean'
+                            )
+                            
+                            fig, ax = plt.subplots(figsize=(12, 8))
+                            sns.heatmap(pivot, cmap="YlOrRd", ax=ax)
+                            plt.title("High-Risk Periods by Hour")
+                            plt.xlabel("Hour of Day")
+                            plt.ylabel("Date")
+                            st.pyplot(fig)
+                        except Exception as e:
+                            st.error(f"Error creating high-risk heatmap: {str(e)}")
+                    else:
+                        st.info("No high-risk periods detected in the selected timeframe.")
+                else:
+                    st.info("No data available for high-risk analysis.")
+            
+            # Tab 3: Feature Importance
+            with tab3:
+                st.markdown('<h2 class="sub-header">Feature Importance</h2>', unsafe_allow_html=True)
+                
+                # Get feature importance based on model type
+                if selected_model == "Random Forest":
+                    # Random Forest feature importance
+                    if hasattr(models_dict[model_key], 'feature_importances_'):
+                        feature_importance = pd.DataFrame({
+                            'Feature': models_dict["feature_list"],
+                            'Importance': models_dict[model_key].feature_importances_
+                        }).sort_values('Importance', ascending=False)
+                        
+                        # Display top 15 features
+                        st.subheader(f"Feature Importance for {selected_model}")
+                        
+                        fig = px.bar(
+                            feature_importance.head(15),
+                            x='Importance',
+                            y='Feature',
+                            orientation='h',
+                            title=f"Top 15 Feature Importances from {selected_model}"
+                        )
+                        
+                        fig.update_layout(height=500)
+                        st.plotly_chart(fig, use_container_width=True)
+                        
+                        # Additional visualizations for feature importance
+                        st.subheader("Advanced Feature Analysis")
+                        
+                        # For the top feature, create analysis visualizations
+                        if len(feature_importance) > 0:
+                            top_feature_name = feature_importance.iloc[0]['Feature']
+                            
+                            st.subheader(f"Analysis for Top Feature: {top_feature_name}")
+                            
+                            # Create tabs for different visualizations
+                            viz_tab1, viz_tab2 = st.tabs(["Distribution", "Relationship with Fault Probability"])
+                            
+                            with viz_tab1:
+                                # Create a histogram of the top feature
+                                fig = px.histogram(
+                                    filtered_data, 
+                                    x=top_feature_name,
+                                    title=f'Distribution of {top_feature_name}',
+                                    nbins=30,
+                                    color_discrete_sequence=['#3498db']
+                                )
+                                fig.update_layout(height=400)
+                                st.plotly_chart(fig, use_container_width=True)
+                            
+                            with viz_tab2:
+                                # Create a scatter plot of the top feature vs fault probability
+                                fig = px.scatter(
+                                    filtered_data,
+                                    x=top_feature_name,
+                                    y='fault_probability',
+                                    title=f'Relationship between {top_feature_name} and Fault Probability',
+                                    opacity=0.6,
+                                    trendline="lowess",
+                                    color='predicted_fault',
+                                    color_discrete_sequence=['#2ecc71', '#e74c3c']
+                                )
+                                fig.update_layout(height=400)
+                                st.plotly_chart(fig, use_container_width=True)
+                            
+                            # Feature importance for top 5 features
+                            st.subheader("Top 5 Features Analysis")
+                            
+                            # Get top 5 features
+                            top_features = feature_importance.head(5)['Feature'].tolist()
+                            
+                            # Create correlation heatmap for top features
+                            top_features_df = filtered_data[top_features + ['fault_probability']]
+                            corr = top_features_df.corr()
+                            
+                            fig = px.imshow(
+                                corr,
+                                text_auto=True,
+                                color_continuous_scale='RdBu_r',
+                                title="Correlation Between Top Features and Fault Probability"
+                            )
+                            fig.update_layout(height=500)
+                            st.plotly_chart(fig, use_container_width=True)
+                    else:
+                        st.info(f"Feature importance not available for the Random Forest model.")
+                
+                elif selected_model == "XGBoost":
+                    # XGBoost feature importance using native methods
                     st.subheader(f"Feature Importance for {selected_model}")
                     
-                    fig = px.bar(
-                        feature_importance.head(15),
-                        x='Importance',
-                        y='Feature',
-                        orientation='h',
-                        title=f"Top 15 Feature Importances from {selected_model}"
-                    )
-                    
-                    fig.update_layout(height=500)
-                    st.plotly_chart(fig, use_container_width=True)
-                    
-                    # Additional visualizations for feature importance
-                    st.subheader("Advanced Feature Analysis")
-                    
-                    # For the top feature, create analysis visualizations
-                    if len(feature_importance) > 0:
-                        top_feature_name = feature_importance.iloc[0]['Feature']
+                    try:
+                        # Create a DataFrame with the features
+                        X = filtered_data[models_dict["feature_list"]]
                         
-                        st.subheader(f"Analysis for Top Feature: {top_feature_name}")
+                        # Convert to DMatrix for XGBoost
+                        dmatrix = xgb.DMatrix(X)
                         
-                        # Create tabs for different visualizations
-                        viz_tab1, viz_tab2 = st.tabs(["Distribution", "Relationship with Fault Probability"])
+                        # Get feature importance from XGBoost model
+                        importance_type = 'gain'
+                        feature_importance = models_dict[model_key].get_score(importance_type=importance_type, fmap='')
                         
-                        with viz_tab1:
-                            # Create a histogram of the top feature
-                            fig = px.histogram(
-                                filtered_data, 
-                                x=top_feature_name,
-                                title=f'Distribution of {top_feature_name}',
-                                nbins=30,
-                                color_discrete_sequence=['#3498db']
-                            )
-                            fig.update_layout(height=400)
-                            st.plotly_chart(fig, use_container_width=True)
+                        # Map feature indices to actual feature names
+                        feature_names = models_dict["feature_list"]
+                        feature_map = {}
                         
-                        with viz_tab2:
-                            # Create a scatter plot of the top feature vs fault probability
-                            fig = px.scatter(
-                                filtered_data,
-                                x=top_feature_name,
-                                y='fault_probability',
-                                title=f'Relationship between {top_feature_name} and Fault Probability',
-                                opacity=0.6,
-                                trendline="lowess",
-                                color='predicted_fault',
-                                color_discrete_sequence=['#2ecc71', '#e74c3c']
-                            )
-                            fig.update_layout(height=400)
-                            st.plotly_chart(fig, use_container_width=True)
+                        # Create a mapping from f0, f1, etc. to actual feature names
+                        for i, name in enumerate(feature_names):
+                            feature_map[f'f{i}'] = name
                         
-                        # Feature importance for top 5 features
-                        st.subheader("Top 5 Features Analysis")
+                        # Convert to DataFrame with proper feature names
+                        importance_df = pd.DataFrame({
+                            'Feature': [feature_map.get(f, f) for f in feature_importance.keys()],
+                            'Importance': list(feature_importance.values())
+                        }).sort_values('Importance', ascending=False)
                         
-                        # Get top 5 features
-                        top_features = feature_importance.head(5)['Feature'].tolist()
-                        
-                        # Create correlation heatmap for top features
-                        top_features_df = filtered_data[top_features + ['fault_probability']]
-                        corr = top_features_df.corr()
-                        
-                        fig = px.imshow(
-                            corr,
-                            text_auto=True,
-                            color_continuous_scale='RdBu_r',
-                            title="Correlation Between Top Features and Fault Probability"
+                        # Display top 15 features
+                        fig = px.bar(
+                            importance_df.head(15),
+                            x='Importance',
+                            y='Feature',
+                            orientation='h',
+                            title=f"Top 15 Feature Importances from {selected_model} (based on {importance_type})"
                         )
+                        
                         fig.update_layout(height=500)
                         st.plotly_chart(fig, use_container_width=True)
-                else:
-                    st.info(f"Feature importance not available for the Random Forest model.")
-            
-            elif selected_model == "XGBoost":
-                # XGBoost feature importance using native methods
-                st.subheader(f"Feature Importance for {selected_model}")
-                
-                try:
-                    # Create a DataFrame with the features
-                    X = filtered_data[models_dict["feature_list"]]
-                    
-                    # Convert to DMatrix for XGBoost
-                    dmatrix = xgb.DMatrix(X)
-                    
-                    # Get feature importance from XGBoost model
-                    importance_type = 'gain'
-                    feature_importance = models_dict[model_key].get_score(importance_type=importance_type, fmap='')
-                    
-                    # Map feature indices to actual feature names
-                    feature_names = models_dict["feature_list"]
-                    feature_map = {}
-                    
-                    # Create a mapping from f0, f1, etc. to actual feature names
-                    for i, name in enumerate(feature_names):
-                        feature_map[f'f{i}'] = name
-                    
-                    # Convert to DataFrame with proper feature names
-                    importance_df = pd.DataFrame({
-                        'Feature': [feature_map.get(f, f) for f in feature_importance.keys()],
-                        'Importance': list(feature_importance.values())
-                    }).sort_values('Importance', ascending=False)
-                    
-                    # Display top 15 features
-                    fig = px.bar(
-                        importance_df.head(15),
-                        x='Importance',
-                        y='Feature',
-                        orientation='h',
-                        title=f"Top 15 Feature Importances from {selected_model} (based on {importance_type})"
-                    )
-                    
-                    fig.update_layout(height=500)
-                    st.plotly_chart(fig, use_container_width=True)
-                    
-                    # Additional visualizations for feature importance
-                    st.subheader("Advanced Feature Analysis")
-                    
-                    # For the top feature, create analysis visualizations
-                    if len(importance_df) > 0:
-                        top_feature_name = importance_df.iloc[0]['Feature']
                         
-                        st.subheader(f"Analysis for Top Feature: {top_feature_name}")
+                        # Additional visualizations for feature importance
+                        st.subheader("Advanced Feature Analysis")
                         
-                        # Create tabs for different visualizations
-                        viz_tab1, viz_tab2 = st.tabs(["Distribution", "Relationship with Fault Probability"])
-                        
-                        with viz_tab1:
-                            # Create a histogram of the top feature
-                            fig = px.histogram(
-                                filtered_data, 
-                                x=top_feature_name,
-                                title=f'Distribution of {top_feature_name}',
-                                nbins=30,
-                                color_discrete_sequence=['#3498db']
+                        # For the top feature, create analysis visualizations
+                        if len(importance_df) > 0:
+                            top_feature_name = importance_df.iloc[0]['Feature']
+                            
+                            st.subheader(f"Analysis for Top Feature: {top_feature_name}")
+                            
+                            # Create tabs for different visualizations
+                            viz_tab1, viz_tab2 = st.tabs(["Distribution", "Relationship with Fault Probability"])
+                            
+                            with viz_tab1:
+                                # Create a histogram of the top feature
+                                fig = px.histogram(
+                                    filtered_data, 
+                                    x=top_feature_name,
+                                    title=f'Distribution of {top_feature_name}',
+                                    nbins=30,
+                                    color_discrete_sequence=['#3498db']
+                                )
+                                fig.update_layout(height=400)
+                                st.plotly_chart(fig, use_container_width=True)
+                            
+                            with viz_tab2:
+                                # Create a scatter plot of the top feature vs fault probability
+                                fig = px.scatter(
+                                    filtered_data,
+                                    x=top_feature_name,
+                                    y='fault_probability',
+                                    title=f'Relationship between {top_feature_name} and Fault Probability',
+                                    opacity=0.6,
+                                    trendline="lowess",
+                                    color='predicted_fault',
+                                    color_discrete_sequence=['#2ecc71', '#e74c3c']
+                                )
+                                fig.update_layout(height=400)
+                                st.plotly_chart(fig, use_container_width=True)
+                            
+                            # Feature importance for top 5 features
+                            st.subheader("Top 5 Features Analysis")
+                            
+                            # Get top 5 features
+                            top_features = importance_df.head(5)['Feature'].tolist()
+                            
+                            # Create correlation heatmap for top features
+                            top_features_df = filtered_data[top_features + ['fault_probability']]
+                            corr = top_features_df.corr()
+                            
+                            fig = px.imshow(
+                                corr,
+                                text_auto=True,
+                                color_continuous_scale='RdBu_r',
+                                title="Correlation Between Top Features and Fault Probability"
                             )
-                            fig.update_layout(height=400)
+                            fig.update_layout(height=500)
                             st.plotly_chart(fig, use_container_width=True)
-                        
-                        with viz_tab2:
-                            # Create a scatter plot of the top feature vs fault probability
-                            fig = px.scatter(
-                                filtered_data,
-                                x=top_feature_name,
-                                y='fault_probability',
-                                title=f'Relationship between {top_feature_name} and Fault Probability',
-                                opacity=0.6,
-                                trendline="lowess",
-                                color='predicted_fault',
-                                color_discrete_sequence=['#2ecc71', '#e74c3c']
-                            )
-                            fig.update_layout(height=400)
-                            st.plotly_chart(fig, use_container_width=True)
-                        
-                        # Feature importance for top 5 features
-                        st.subheader("Top 5 Features Analysis")
-                        
-                        # Get top 5 features
-                        top_features = importance_df.head(5)['Feature'].tolist()
-                        
-                        # Create correlation heatmap for top features
-                        top_features_df = filtered_data[top_features + ['fault_probability']]
-                        corr = top_features_df.corr()
-                        
-                        fig = px.imshow(
-                            corr,
-                            text_auto=True,
-                            color_continuous_scale='RdBu_r',
-                            title="Correlation Between Top Features and Fault Probability"
-                        )
-                        fig.update_layout(height=500)
-                        st.plotly_chart(fig, use_container_width=True)
-                except Exception as e:
-                    st.error(f"Error creating feature importance visualizations: {str(e)}")
-            
-            # Feature correlation with fault probability (for both models)
-            st.subheader("Feature Correlation with Fault Probability")
-            
-            # Calculate correlations
-            correlations = filtered_data[models_dict["feature_list"]].corrwith(filtered_data['fault_probability'])
-            top_correlations = correlations.abs().sort_values(ascending=False).head(15)
-            
-            corr_df = pd.DataFrame({
-                'Feature': top_correlations.index,
-                'Correlation': correlations[top_correlations.index]
-            })
-            
-            fig = px.bar(
-                corr_df,
-                x='Correlation',
-                y='Feature',
-                orientation='h',
-                color='Correlation',
-                color_continuous_scale=px.colors.diverging.RdBu_r,
-                title="Top 15 Feature Correlations with Fault Probability"
-            )
-            
-            fig.update_layout(height=500)
-            st.plotly_chart(fig, use_container_width=True)
-        
-        # Tab 4: Performance Metrics
-        with tab4:
-            st.markdown('<h2 class="sub-header">Performance Metrics</h2>', unsafe_allow_html=True)
-            
-            # Create a simulated ground truth for demonstration purposes
-            # In a real application, you would use actual labeled data
-            st.info("Note: For demonstration purposes, we're using a simulated ground truth based on probability thresholds.")
-            
-            # Create simulated ground truth with different thresholds
-            threshold_slider = st.slider(
-                "Adjust Ground Truth Threshold",
-                min_value=0.0,
-                max_value=1.0,
-                value=0.7,  # Higher threshold for ground truth
-                step=0.05,
-                help="Adjust this to simulate different ground truth scenarios"
-            )
-            
-            # Simulate ground truth (in a real app, you would use actual labeled data)
-            filtered_data['simulated_truth'] = (filtered_data['fault_probability'] >= threshold_slider).astype(int)
-            
-            # Confusion matrix
-            st.subheader("Confusion Matrix")
-            
-            cm = confusion_matrix(filtered_data['simulated_truth'], filtered_data['predicted_fault'])
-            
-            # Create labels for the confusion matrix
-            labels = ['No Fault', 'Fault']
-            
-            # Create a more informative confusion matrix
-            cm_fig = px.imshow(
-                cm,
-                text_auto=True,
-                color_continuous_scale='Blues',
-                labels=dict(x="Predicted", y="Actual", color="Count"),
-                x=labels,
-                y=labels,
-                title="Confusion Matrix"
-            )
-            cm_fig.update_layout(height=400)
-            st.plotly_chart(cm_fig, use_container_width=True)
-            
-            # Explain confusion matrix
-            col1, col2 = st.columns(2)
-            with col1:
-                st.markdown(f"""
-                **True Negatives (TN)**: {cm[0][0]}  
-                No fault correctly predicted as no fault
-                """)
-                st.markdown(f"""
-                **False Positives (FP)**: {cm[0][1]}  
-                No fault incorrectly predicted as fault
-                """)
-            with col2:
-                st.markdown(f"""
-                **False Negatives (FN)**: {cm[1][0]}  
-                Fault incorrectly predicted as no fault
-                """)
-                st.markdown(f"""
-                **True Positives (TP)**: {cm[1][1]}  
-                Fault correctly predicted as fault
-                """)
-            
-            # Precision, recall, and F1 score
-            st.subheader("Precision, Recall, and F1 Score")
-            
-            precision, recall, f1, _ = precision_recall_fscore_support(
-                filtered_data['simulated_truth'], 
-                filtered_data['predicted_fault'], 
-                average='binary',
-                zero_division=0
-            )
-            accuracy = accuracy_score(filtered_data['simulated_truth'], filtered_data['predicted_fault'])
-            
-            # Create a metrics dataframe for better visualization
-            metrics_df = pd.DataFrame({
-                "Metric": ["Precision", "Recall", "F1 Score", "Accuracy"],
-                "Value": [precision, recall, f1, accuracy],
-                "Description": [
-                    "Ability of the model to avoid false positives",
-                    "Ability of the model to find all faults",
-                    "Harmonic mean of precision and recall",
-                    "Overall correctness of predictions"
-                ]
-            })
-            
-            # Display metrics as a styled table
-            st.dataframe(metrics_df, use_container_width=True)
-            
-            # Error analysis
-            st.subheader("Error Analysis")
-            
-            # Identify errors
-            filtered_data['error_type'] = 'Correct'
-            filtered_data.loc[(filtered_data['simulated_truth'] == 0) & (filtered_data['predicted_fault'] == 1), 'error_type'] = 'False Positive'
-            filtered_data.loc[(filtered_data['simulated_truth'] == 1) & (filtered_data['predicted_fault'] == 0), 'error_type'] = 'False Negative'
-            
-            errors = filtered_data[filtered_data['error_type'] != 'Correct']
-            
-            if not errors.empty:
-                # Error statistics
-                error_count = len(errors)
-                error_rate = error_count / len(filtered_data)
+                    except Exception as e:
+                        st.error(f"Error creating feature importance visualizations: {str(e)}")
                 
-                st.write(f"Total errors: {error_count} ({error_rate:.2%} of data)")
+                # Feature correlation with fault probability (for both models)
+                st.subheader("Feature Correlation with Fault Probability")
                 
-                # Error distribution
-                error_dist = errors['error_type'].value_counts().reset_index()
-                error_dist.columns = ['Error Type', 'Count']
+                # Calculate correlations
+                correlations = filtered_data[models_dict["feature_list"]].corrwith(filtered_data['fault_probability'])
+                top_correlations = correlations.abs().sort_values(ascending=False).head(15)
                 
-                fig = px.pie(
-                    error_dist,
-                    values='Count',
-                    names='Error Type',
-                    title="Distribution of Error Types",
-                    color_discrete_sequence=['#e74c3c', '#3498db']
+                corr_df = pd.DataFrame({
+                    'Feature': top_correlations.index,
+                    'Correlation': correlations[top_correlations.index]
+                })
+                
+                fig = px.bar(
+                    corr_df,
+                    x='Correlation',
+                    y='Feature',
+                    orientation='h',
+                    color='Correlation',
+                    color_continuous_scale=px.colors.diverging.RdBu_r,
+                    title="Top 15 Feature Correlations with Fault Probability"
                 )
-                fig.update_layout(height=300)
+                
+                fig.update_layout(height=500)
                 st.plotly_chart(fig, use_container_width=True)
+            
+            # Tab 4: Performance Metrics
+            with tab4:
+                st.markdown('<h2 class="sub-header">Performance Metrics</h2>', unsafe_allow_html=True)
                 
-                # Show examples of errors
-                error_tabs = st.tabs(["False Positives", "False Negatives"])
+                # Create a simulated ground truth for demonstration purposes
+                # In a real application, you would use actual labeled data
+                st.info("Note: For demonstration purposes, we're using a simulated ground truth based on probability thresholds.")
                 
-                with error_tabs[0]:  # False Positives
-                    fp_errors = filtered_data[filtered_data['error_type'] == 'False Positive']
-                    if not fp_errors.empty:
-                        st.write(f"False Positives: {len(fp_errors)} instances")
-                        st.write("Sample of False Positive errors (predicted fault when there was none):")
-                        st.dataframe(fp_errors.head(5)[['fault_probability'] + models_dict["feature_list"][:5]])
-                        
-                        # Feature distribution in false positives
-                        if len(fp_errors) >= 5:  # Only show if we have enough data
-                            st.subheader("Feature Distribution in False Positives")
-                            fp_feature = st.selectbox("Select feature to analyze in False Positives:", models_dict["feature_list"][:10])
+                # Create simulated ground truth with different thresholds
+                threshold_slider = st.slider(
+                    "Adjust Ground Truth Threshold",
+                    min_value=0.0,
+                    max_value=1.0,
+                    value=0.7,  # Higher threshold for ground truth
+                    step=0.05,
+                    help="Adjust this to simulate different ground truth scenarios"
+                )
+                
+                # Simulate ground truth (in a real app, you would use actual labeled data)
+                filtered_data['simulated_truth'] = (filtered_data['fault_probability'] >= threshold_slider).astype(int)
+                
+                # Confusion matrix
+                st.subheader("Confusion Matrix")
+                
+                cm = confusion_matrix(filtered_data['simulated_truth'], filtered_data['predicted_fault'])
+                
+                # Create labels for the confusion matrix
+                labels = ['No Fault', 'Fault']
+                
+                # Create a more informative confusion matrix
+                cm_fig = px.imshow(
+                    cm,
+                    text_auto=True,
+                    color_continuous_scale='Blues',
+                    labels=dict(x="Predicted", y="Actual", color="Count"),
+                    x=labels,
+                    y=labels,
+                    title="Confusion Matrix"
+                )
+                cm_fig.update_layout(height=400)
+                st.plotly_chart(cm_fig, use_container_width=True)
+                
+                # Explain confusion matrix
+                col1, col2 = st.columns(2)
+                with col1:
+                    st.markdown(f"""
+                    **True Negatives (TN)**: {cm[0][0]}  
+                    No fault correctly predicted as no fault
+                    """)
+                    st.markdown(f"""
+                    **False Positives (FP)**: {cm[0][1]}  
+                    No fault incorrectly predicted as fault
+                    """)
+                with col2:
+                    st.markdown(f"""
+                    **False Negatives (FN)**: {cm[1][0]}  
+                    Fault incorrectly predicted as no fault
+                    """)
+                    st.markdown(f"""
+                    **True Positives (TP)**: {cm[1][1]}  
+                    Fault correctly predicted as fault
+                    """)
+                
+                # Precision, recall, and F1 score
+                st.subheader("Precision, Recall, and F1 Score")
+                
+                precision, recall, f1, _ = precision_recall_fscore_support(
+                    filtered_data['simulated_truth'], 
+                    filtered_data['predicted_fault'], 
+                    average='binary',
+                    zero_division=0
+                )
+                accuracy = accuracy_score(filtered_data['simulated_truth'], filtered_data['predicted_fault'])
+                
+                # Create a metrics dataframe for better visualization
+                metrics_df = pd.DataFrame({
+                    "Metric": ["Precision", "Recall", "F1 Score", "Accuracy"],
+                    "Value": [precision, recall, f1, accuracy],
+                    "Description": [
+                        "Ability of the model to avoid false positives",
+                        "Ability of the model to find all faults",
+                        "Harmonic mean of precision and recall",
+                        "Overall correctness of predictions"
+                    ]
+                })
+                
+                # Display metrics as a styled table
+                st.dataframe(metrics_df, use_container_width=True)
+                
+                # Error analysis
+                st.subheader("Error Analysis")
+                
+                # Identify errors
+                filtered_data['error_type'] = 'Correct'
+                filtered_data.loc[(filtered_data['simulated_truth'] == 0) & (filtered_data['predicted_fault'] == 1), 'error_type'] = 'False Positive'
+                filtered_data.loc[(filtered_data['simulated_truth'] == 1) & (filtered_data['predicted_fault'] == 0), 'error_type'] = 'False Negative'
+                
+                errors = filtered_data[filtered_data['error_type'] != 'Correct']
+                
+                if not errors.empty:
+                    # Error statistics
+                    error_count = len(errors)
+                    error_rate = error_count / len(filtered_data)
+                    
+                    st.write(f"Total errors: {error_count} ({error_rate:.2%} of data)")
+                    
+                    # Error distribution
+                    error_dist = errors['error_type'].value_counts().reset_index()
+                    error_dist.columns = ['Error Type', 'Count']
+                    
+                    fig = px.pie(
+                        error_dist,
+                        values='Count',
+                        names='Error Type',
+                        title="Distribution of Error Types",
+                        color_discrete_sequence=['#e74c3c', '#3498db']
+                    )
+                    fig.update_layout(height=300)
+                    st.plotly_chart(fig, use_container_width=True)
+                    
+                    # Show examples of errors
+                    error_tabs = st.tabs(["False Positives", "False Negatives"])
+                    
+                    with error_tabs[0]:  # False Positives
+                        fp_errors = filtered_data[filtered_data['error_type'] == 'False Positive']
+                        if not fp_errors.empty:
+                            st.write(f"False Positives: {len(fp_errors)} instances")
+                            st.write("Sample of False Positive errors (predicted fault when there was none):")
+                            st.dataframe(fp_errors.head(5)[['fault_probability'] + models_dict["feature_list"][:5]])
                             
-                            fig = px.histogram(
-                                filtered_data,
-                                x=fp_feature,
-                                color='error_type',
-                                barmode='overlay',
-                                opacity=0.7,
-                                color_discrete_map={
-                                    'Correct': '#2ecc71',
-                                    'False Positive': '#e74c3c',
-                                    'False Negative': '#3498db'
-                                },
-                                title=f"Distribution of {fp_feature} by Prediction Result"
-                            )
-                            fig.update_layout(height=400)
-                            st.plotly_chart(fig, use_container_width=True)
-                    else:
-                        st.info("No False Positive errors found.")
-                
-                with error_tabs[1]:  # False Negatives
-                    fn_errors = filtered_data[filtered_data['error_type'] == 'False Negative']
-                    if not fn_errors.empty:
-                        st.write(f"False Negatives: {len(fn_errors)} instances")
-                        st.write("Sample of False Negative errors (missed actual faults):")
-                        st.dataframe(fn_errors.head(5)[['fault_probability'] + models_dict["feature_list"][:5]])
-                        
-                        # Feature distribution in false negatives
-                        if len(fn_errors) >= 5:  # Only show if we have enough data
-                            st.subheader("Feature Distribution in False Negatives")
-                            fn_feature = st.selectbox("Select feature to analyze in False Negatives:", models_dict["feature_list"][:10])
+                            # Feature distribution in false positives
+                            if len(fp_errors) >= 5:  # Only show if we have enough data
+                                st.subheader("Feature Distribution in False Positives")
+                                fp_feature = st.selectbox("Select feature to analyze in False Positives:", models_dict["feature_list"][:10])
+                                
+                                fig = px.histogram(
+                                    filtered_data,
+                                    x=fp_feature,
+                                    color='error_type',
+                                    barmode='overlay',
+                                    opacity=0.7,
+                                    color_discrete_map={
+                                        'Correct': '#2ecc71',
+                                        'False Positive': '#e74c3c',
+                                        'False Negative': '#3498db'
+                                    },
+                                    title=f"Distribution of {fp_feature} by Prediction Result"
+                                )
+                                fig.update_layout(height=400)
+                                st.plotly_chart(fig, use_container_width=True)
+                        else:
+                            st.info("No False Positive errors found.")
+                    
+                    with error_tabs[1]:  # False Negatives
+                        fn_errors = filtered_data[filtered_data['error_type'] == 'False Negative']
+                        if not fn_errors.empty:
+                            st.write(f"False Negatives: {len(fn_errors)} instances")
+                            st.write("Sample of False Negative errors (missed actual faults):")
+                            st.dataframe(fn_errors.head(5)[['fault_probability'] + models_dict["feature_list"][:5]])
                             
-                            fig = px.histogram(
-                                filtered_data,
-                                x=fn_feature,
-                                color='error_type',
-                                barmode='overlay',
-                                opacity=0.7,
-                                color_discrete_map={
-                                    'Correct': '#2ecc71',
-                                    'False Positive': '#e74c3c',
-                                    'False Negative': '#3498db'
-                                },
-                                title=f"Distribution of {fn_feature} by Prediction Result"
-                            )
-                            fig.update_layout(height=400)
-                            st.plotly_chart(fig, use_container_width=True)
-                    else:
-                        st.info("No False Negative errors found.")
-            else:
-                st.success("No errors detected with the current thresholds.")
+                            # Feature distribution in false negatives
+                            if len(fn_errors) >= 5:  # Only show if we have enough data
+                                st.subheader("Feature Distribution in False Negatives")
+                                fn_feature = st.selectbox("Select feature to analyze in False Negatives:", models_dict["feature_list"][:10])
+                                
+                                fig = px.histogram(
+                                    filtered_data,
+                                    x=fn_feature,
+                                    color='error_type',
+                                    barmode='overlay',
+                                    opacity=0.7,
+                                    color_discrete_map={
+                                        'Correct': '#2ecc71',
+                                        'False Positive': '#e74c3c',
+                                        'False Negative': '#3498db'
+                                    },
+                                    title=f"Distribution of {fn_feature} by Prediction Result"
+                                )
+                                fig.update_layout(height=400)
+                                st.plotly_chart(fig, use_container_width=True)
+                        else:
+                            st.info("No False Negative errors found.")
+                else:
+                    st.success("No errors detected with the current thresholds.")
+        except Exception as e:
+            st.error(f"Error making predictions: {str(e)}")
     else:
         st.error("No data available for visualization. Please check if the sample data file exists.")
 
