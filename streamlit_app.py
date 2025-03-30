@@ -714,7 +714,7 @@ def main():
                     "Adjust Ground Truth Threshold",
                     min_value=0.0,
                     max_value=1.0,
-                    value=0.7,  # Higher threshold for ground truth
+                    value=0.5,  # Higher threshold for ground truth
                     step=0.05,
                     help="Adjust this to simulate different ground truth scenarios"
                 )
