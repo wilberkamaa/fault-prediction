@@ -76,14 +76,23 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
+# Define constants and file paths
 MODEL_FILES = {
     "rf_model": "rf_fault_detection.pkl",
     "xgb_model": "xgboost_fault_detection.json",
 }
 
+# Helper function to get the absolute path to a file in the repository
+def get_repo_path(relative_path):
+    """Get the absolute path to a file in the repository, works both locally and on Streamlit Cloud."""
+    # Base directory is the directory where the script is located
+    base_dir = Path(__file__).parent.absolute()
+    return base_dir / relative_path
+
 @st.cache_resource
 def load_models():
-    models_dir = Path("models")
+    """Load ML models, scaler, and feature list from the repository."""
+    models_dir = get_repo_path("models")
     models = {}
     
     # Load models
@@ -107,7 +116,8 @@ def load_models():
     
     # Load scaler
     try:
-        scaler = joblib.load(models_dir / "feature_scaler.pkl")
+        scaler_path = models_dir / "feature_scaler.pkl"
+        scaler = joblib.load(scaler_path)
         st.write(f"✅ Loaded feature scaler")
     except Exception as e:
         st.write(f"❌ Error loading feature scaler: {e}")
@@ -115,7 +125,8 @@ def load_models():
     
     # Load feature list
     try:
-        with open(models_dir / "feature_list.txt", "r") as f:
+        feature_list_path = models_dir / "feature_list.txt"
+        with open(feature_list_path, "r") as f:
             feature_list = [line.strip() for line in f.readlines()]
         st.write(f"✅ Loaded feature list with {len(feature_list)} features")
     except Exception as e:
@@ -130,14 +141,35 @@ def load_models():
 
 @st.cache_data
 def load_sample_data():
-    # Load sample data
-    data_path = Path("notebooks/data/gen_data_test.parquet")
-    if data_path.exists():
-        df = pd.read_parquet(data_path)
-        return df
-    else:
-        st.error("Sample data file not found. Please check the path.")
-        return None
+    """Load sample data from the repository."""
+    # Try multiple possible data locations
+    possible_paths = [
+        get_repo_path("data/gen_data_test.parquet"),
+        get_repo_path("notebooks/data/gen_data_test.parquet"),
+        get_repo_path("data/gen_data_test.csv"),
+        get_repo_path("notebooks/data/gen_data_test.csv")
+    ]
+    
+    # Try to load from each path
+    for data_path in possible_paths:
+        if data_path.exists():
+            st.write(f"✅ Loading data from {data_path}")
+            
+            # Load based on file extension
+            if str(data_path).endswith('.parquet'):
+                df = pd.read_parquet(data_path)
+            elif str(data_path).endswith('.csv'):
+                df = pd.read_csv(data_path)
+                # If the index is a datetime, parse it
+                if 'datetime' in df.columns:
+                    df['datetime'] = pd.to_datetime(df['datetime'])
+                    df.set_index('datetime', inplace=True)
+            
+            return df
+    
+    # If no data found
+    st.error("Sample data file not found. Please check the repository structure.")
+    return None
 
 # Make predictions
 def predict_fault(data, model, scaler, feature_list, threshold=0.5):
