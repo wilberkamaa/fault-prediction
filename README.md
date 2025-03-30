@@ -2,7 +2,6 @@
 
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 ![Python](https://img.shields.io/badge/python-3.8%2B-blue)
-![Streamlit](https://img.shields.io/badge/streamlit-1.10%2B-red)
 
 A comprehensive solution for fault prediction in hybrid energy systems, combining synthetic data generation, machine learning models, and an interactive dashboard.
 
