@@ -35,6 +35,7 @@ energy-fault-prediction/
 │   ├── Train_ml_models.ipynb
 │   ├── data_loading_example.py
 │   ├── fault_detection_rf_xgb.py
+│   └── import_example.py
 ├── src/                    # Core source modules
 │   ├── __init__.py
 │   ├── battery_system.py
