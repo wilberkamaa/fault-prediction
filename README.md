@@ -12,7 +12,7 @@ This project provides tools for:
 - **Synthetic Data Generation**: Create realistic time-series data for hybrid energy systems
 - **Fault Detection**: Train and evaluate ML models (Random Forest and XGBoost) for fault prediction
 - **Interactive Dashboard**: Visualize system data and predictions through a Streamlit interface
-  Available: https://fault-prediction.streamlit.app
+  - Available: https://fault-prediction.streamlit.app
 
 The system is designed to detect and predict faults in a hybrid energy system with components including:
 - 1500 kW Solar PV System
