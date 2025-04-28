@@ -70,7 +70,9 @@ df = generator.generate_dataset(
 Launch the interactive Streamlit dashboard:
 
 ```bash
-streamlit run app.py
+streamlit run streamlit_app.py
+# OR
+streamlit run prediction_app.py
 ```
 
 The dashboard provides:
@@ -125,7 +127,8 @@ For detailed documentation, see:
 ## 🔍 Example Notebooks
 
 The `notebooks/` directory contains example Jupyter notebooks:
-- `Train_ml_models.ipynb`: Training ML models for fault detection
+- `Train_ml_fault.ipynb`: Training ML models for fault detection
+- `Train_ml_predict.ipynb`: Training ML models for solar & demand prediction
 - `data_loading_example.py`: Example of loading and processing data
 - `fault_detection_rf_xgb.py`: Example of using Random Forest and XGBoost models
 
